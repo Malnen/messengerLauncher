@@ -1,15 +1,17 @@
 {
   "name": "messengerlauncher",
   "version": "1.0.0",
-  "description": "",
+  "description": "Messenger desktop launcher",
   "main": "main.js",
-  "scripts": {
-    "start": "electron ."
-  },
-  "keywords": [],
   "author": "",
   "license": "ISC",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "release": "electron-builder --publish always"
+  },
   "devDependencies": {
-    "electron": "39.2.7"
+    "electron": "^39.2.7",
+    "electron-builder": "^24.13.3"
   }
 }
