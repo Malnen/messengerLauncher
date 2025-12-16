@@ -1,0 +1,7 @@
+{
+  "appId": "com.malnen.messengerlauncher",
+  "productName": "Messenger Launcher",
+  "publish": {
+    "provider": "github"
+  }
+}
