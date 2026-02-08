@@ -1,6 +1,48 @@
 const {app, BrowserWindow, shell, screen} = require("electron");
 const path = require("path");
 const fs = require("fs");
+const contextMenu = require("electron-context-menu").default;
+
+const LABELS = {
+    en: {
+        cut: "Cut",
+        copy: "Copy",
+        paste: "Paste",
+        selectAll: "Select All",
+        save: "Save",
+        saveImageAs: "Save Image As…",
+        saveVideoAs: "Save Video As…",
+        copyLink: "Copy Link",
+        copyImage: "Copy Image",
+        copyImageAddress: "Copy Image Address",
+        copyVideoAddress: "Copy Video Address",
+        inspect: "Inspect Element",
+        searchWithGoogle: "Search with Google",
+        lookUpSelection: "Look Up Selection",
+        openImage: "Open image in browser",
+        openVideo: "Open video in browser",
+        openLink: "Open link in browser"
+    },
+    pl: {
+        cut: "Wytnij",
+        copy: "Kopiuj",
+        paste: "Wklej",
+        selectAll: "Zaznacz wszystko",
+        save: "Zapisz",
+        saveImageAs: "Zapisz obraz jako…",
+        saveVideoAs: "Zapisz wideo jako…",
+        copyLink: "Kopiuj adres linku",
+        copyImage: "Kopiuj obraz",
+        copyImageAddress: "Kopiuj adres obrazu",
+        copyVideoAddress: "Kopiuj adres wideo",
+        inspect: "Zbadaj element",
+        searchWithGoogle: "Szukaj w Google",
+        lookUpSelection: "Sprawdź zaznaczenie",
+        openImage: "Otwórz obraz w przeglądarce",
+        openVideo: "Otwórz wideo w przeglądarce",
+        openLink: "Otwórz link w przeglądarce"
+    }
+};
 
 let mainWindow;
 
@@ -48,6 +90,77 @@ function normalizeBounds(bounds) {
     );
 
     return {x, y, width, height};
+}
+
+function getAppLocale() {
+    return (
+        app.getLocale?.() ||
+        app.getSystemLocale?.() ||
+        process.env.LANG ||
+        "en"
+    )
+        .toLowerCase()
+        .replace("_", "-")
+        .split("-")[0];
+}
+
+function registerContextMenu() {
+    const locale = getAppLocale();
+    const translations = LABELS[locale] || LABELS.en;
+
+    contextMenu({
+        labels: {
+            cut: translations.cut,
+            copy: translations.copy,
+            paste: translations.paste,
+            selectAll: translations.selectAll,
+            save: translations.save,
+            saveImageAs: translations.saveImageAs,
+            saveVideoAs: translations.saveVideoAs,
+            copyLink: translations.copyLink,
+            copyImage: translations.copyImage,
+            copyImageAddress: translations.copyImageAddress,
+            copyVideoAddress: translations.copyVideoAddress,
+            inspect: translations.inspect,
+            searchWithGoogle: translations.searchWithGoogle,
+            lookUpSelection: translations.lookUpSelection
+        },
+        prepend: (defaultActions, params) => {
+            const items = [];
+
+            if (params.linkURL) {
+                items.push({
+                    label: translations.openLink,
+                    click: () => shell.openExternal(params.linkURL)
+                });
+            }
+
+            if (params.mediaType === "image" && params.srcURL) {
+                items.push({
+                    label: translations.openImage,
+                    click: () => shell.openExternal(params.srcURL)
+                });
+            }
+
+            if (params.mediaType === "video" && params.srcURL) {
+                items.push({
+                    label: translations.openVideo,
+                    click: () => shell.openExternal(params.srcURL)
+                });
+            }
+
+            return items;
+        },
+        showSaveImageAs: true,
+        showCopyImage: true,
+        showInspectElement: true,
+        showCopyVideoAddress: true,
+        showSaveVideo: true,
+        showSaveVideoAs: true,
+        showSaveLinkAs: true,
+        showLookUpSelection: true,
+        showSearchWithGoogle: true
+    });
 }
 
 function registerWindowEvents(window) {
@@ -102,6 +215,7 @@ function createMainWindow() {
     mainWindow.setBounds(bounds, false);
     mainWindow.once("ready-to-show", () => {
         mainWindow.show();
+        registerContextMenu();
     });
     mainWindow.webContents.once("did-finish-load", () => {
         const zoom = state.zoomFactor ?? DEFAULT_STATE.zoomFactor;
