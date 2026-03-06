@@ -1,4 +1,4 @@
-const {app, BrowserWindow, shell, screen} = require("electron");
+const {app, BrowserWindow, shell, screen, ipcMain} = require("electron");
 const path = require("path");
 const fs = require("fs");
 const contextMenu = require("electron-context-menu").default;
@@ -209,6 +209,7 @@ function createMainWindow() {
         autoHideMenuBar: true,
         webPreferences: {
             contextIsolation: true,
+            preload: path.join(__dirname, "preload.js"),
             zoomFactor: state.zoomFactor ?? DEFAULT_STATE.zoomFactor
         }
     });
@@ -221,6 +222,38 @@ function createMainWindow() {
         const zoom = state.zoomFactor ?? DEFAULT_STATE.zoomFactor;
         mainWindow.webContents.setZoomFactor(zoom);
     });
+    mainWindow.webContents.once("did-finish-load", () => {
+        mainWindow.webContents.executeJavaScript(`
+        (() => {
+            const send = () => {
+                const nodes = document.querySelectorAll("span");
+                let total = 0;
+
+                nodes.forEach(el => {
+                    const s = getComputedStyle(el);
+                    const r = el.getBoundingClientRect();
+
+                    if (
+                        r.width === 10 &&
+                        r.height === 10 &&
+                        s.backgroundColor === "rgb(69, 153, 255)"
+                    ) {
+                        total++;
+                    }
+                });
+
+                window.messengerIPC.sendUnread(total);
+            };
+
+            new MutationObserver(send).observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+
+            send();
+        })();
+    `);
+    });
     mainWindow.loadURL("https://www.messenger.com").catch(() => {
     });
 
@@ -232,4 +265,8 @@ app.whenReady().then(createMainWindow);
 
 app.on("window-all-closed", () => {
     if (process.platform !== "darwin") app.quit();
+});
+
+ipcMain.on("messenger-unread", (_, count) => {
+    app.setBadgeCount(count);
 });
